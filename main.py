@@ -4,13 +4,13 @@ from views import App
 import sys
 
 def main():
-    # Configurar CustomTkinter
-    ctk.set_appearance_mode("System")
+    # Configurar CustomTkinter - TEMA CLARO
+    ctk.set_appearance_mode("Light")  # Cambiado a "Light"
     ctk.set_default_color_theme("blue")
     
     # Configurar fuente más grande para TODA la aplicación
-    ctk.set_widget_scaling(1.4)  # Escala general de widgets (más grande)
-    ctk.set_window_scaling(1.4)  # Escala de la ventana
+    ctk.set_widget_scaling(1.4)
+    ctk.set_window_scaling(1.4)
     
     # Inicializar base de datos
     db = Database()
