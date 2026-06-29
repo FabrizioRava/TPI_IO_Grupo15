@@ -160,15 +160,30 @@ class ProduccionController:
         
         cambios = {}
         variables_a_comparar = [
+            # Variables principales del EPQ
             ('q_optima', 'Cantidad óptima a producir (Q*)'),
             ('cp', 'Costo de producción anual (CP)'),
             ('cm', 'Costo de inventario anual (CI)'),
             ('ct', 'Costo total anual (CT)'),
+            ('imax', 'Inventario máximo (Imax)'),                    # <--- NUEVO
+            ('n', 'Número de ciclos por año'),
+            
+            # Variables de tiempos
+            ('t_dias', 'Duración del período (T) en días'),
+            ('tp_dias', 'Tiempo de producción (tp) en días'),
+            ('td_dias', 'Tiempo muerto (td) en días'),               # <--- NUEVO
+            
+            # Variables de stock
             ('ss_redondeado', 'Stock de seguridad (SS)'),
             ('pr_redondeado', 'Punto de reorden (PR)'),
-            ('n', 'Número de ciclos por año'),
+            
+            # Variables de costos con stock de seguridad
             ('costo_ss', 'Costo del stock de seguridad (SS × Ch)'),
-            ('ct_con_ss', 'Costo total con stock de seguridad')
+            ('ct_con_ss', 'Costo total con stock de seguridad'),
+            
+            # Variables específicas si hay faltantes (se agregan condicionalmente)
+            ('s_optima', 'Déficit máximo permitido (S*)'),           # <--- NUEVO
+            ('ct_f', 'Costo total con faltantes (CT_f)'),            # <--- NUEVO
         ]
         
         for clave, nombre in variables_a_comparar:

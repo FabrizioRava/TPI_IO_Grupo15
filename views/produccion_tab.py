@@ -415,7 +415,7 @@ class ProduccionTab:
             nivel_servicio=nivel_servicio,
             s_optima=s_optima,
             tipo_desviacion=tipo_desviacion,
-            ch=ch  # <--- PASAR CH PARA CALCULAR SS × CH
+            ch=ch
         )
         
         # Obtener costo_ss del resultado (ya calculado como SS × Ch)
@@ -426,18 +426,40 @@ class ProduccionTab:
         ct_con_ss = ct + costo_ss
         
         # ============================================================
+        # CALCULAR VALORES EN DÍAS PARA COMPARAR
+        # ============================================================
+        t_dias = resultado_epq['t'] * dias_operativos
+        tp_dias = resultado_epq['tp'] * dias_operativos
+        td_dias = resultado_epq['td'] * dias_operativos
+        
+        # ============================================================
         # COMPARAR CON RESULTADO ANTERIOR PARA DETECTAR CAMBIOS
         # ============================================================
         resultado_actual = {
+            # Variables principales del EPQ
             'q_optima': resultado_epq['q_optima'],
             'cp': resultado_epq['cp'],
             'cm': resultado_epq['cm'],
             'ct': resultado_epq['ct'],
+            'imax': resultado_epq['imax'],                    # <--- NUEVO
+            'n': resultado_epq['n'],
+            
+            # Variables de tiempos
+            't_dias': t_dias,
+            'tp_dias': tp_dias,
+            'td_dias': td_dias,                               # <--- NUEVO
+            
+            # Variables de stock
             'ss_redondeado': resultado_ss_pr['ss_redondeado'],
             'pr_redondeado': resultado_ss_pr['pr_redondeado'],
-            'n': resultado_epq['n'],
+            
+            # Variables de costos con stock de seguridad
             'costo_ss': costo_ss,
-            'ct_con_ss': ct_con_ss
+            'ct_con_ss': ct_con_ss,
+            
+            # Variables específicas si hay faltantes
+            's_optima': resultado_epq.get('s_optima', 0),      # <--- NUEVO
+            'ct_f': resultado_epq.get('ct_f', 0),              # <--- NUEVO
         }
         
         cambios = self.controller.comparar_con_anterior(resultado_actual)
