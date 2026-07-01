@@ -28,13 +28,39 @@ class ProduccionController:
         for _, row in grupo_a.iterrows():
             productos_a.append({
                 'id': row['id'],
-                'sku': row['sku'],
                 'nombre': row['nombre'],
                 'demanda': row['demanda'],
                 'costo_unitario': row['costo_unitario']
             })
         
         return productos_a
+    
+    def obtener_productos_por_grupo(self, grupo):
+        """Obtiene los productos de un grupo específico (A, B o C)"""
+        articulos = self.db.obtener_articulos()
+        if not articulos:
+            return []
+        
+        from controllers.abc_controller import ABCController
+        abc_controller = ABCController(self.db)
+        df = abc_controller.calcular_analisis_abc()
+        
+        if df is None:
+            return []
+        
+        # Filtrar por grupo
+        grupo_filtrado = df[df['grupo'] == grupo]
+        
+        productos = []
+        for _, row in grupo_filtrado.iterrows():
+            productos.append({
+                'id': row['id'],
+                'nombre': row['nombre'],
+                'demanda': row['demanda'],
+                'costo_unitario': row['costo_unitario']
+            })
+        
+        return productos
     
     def calcular_epq(self, demanda, co, p, ch, cb=None):
         """
@@ -165,13 +191,13 @@ class ProduccionController:
             ('cp', 'Costo de producción anual (CP)'),
             ('cm', 'Costo de inventario anual (CI)'),
             ('ct', 'Costo total anual (CT)'),
-            ('imax', 'Inventario máximo (Imax)'),                    # <--- NUEVO
+            ('imax', 'Inventario máximo (Imax)'),
             ('n', 'Número de ciclos por año'),
             
             # Variables de tiempos
             ('t_dias', 'Duración del período (T) en días'),
             ('tp_dias', 'Tiempo de producción (tp) en días'),
-            ('td_dias', 'Tiempo muerto (td) en días'),               # <--- NUEVO
+            ('td_dias', 'Tiempo muerto (td) en días'),
             
             # Variables de stock
             ('ss_redondeado', 'Stock de seguridad (SS)'),
@@ -181,9 +207,9 @@ class ProduccionController:
             ('costo_ss', 'Costo del stock de seguridad (SS × Ch)'),
             ('ct_con_ss', 'Costo total con stock de seguridad'),
             
-            # Variables específicas si hay faltantes (se agregan condicionalmente)
-            ('s_optima', 'Déficit máximo permitido (S*)'),           # <--- NUEVO
-            ('ct_f', 'Costo total con faltantes (CT_f)'),            # <--- NUEVO
+            # Variables específicas si hay faltantes
+            ('s_optima', 'Déficit máximo permitido (S*)'),
+            ('ct_f', 'Costo total con faltantes (CT_f)'),
         ]
         
         for clave, nombre in variables_a_comparar:

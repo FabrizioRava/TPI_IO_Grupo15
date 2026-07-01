@@ -14,16 +14,15 @@ class Database:
         return sqlite3.connect(self.db_path)
     
     def crear_tablas(self):
-        """Crea la tabla de artículos"""
+        """Crea la tabla de artículos SIN SKU"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Tabla de artículos
+        # Tabla de artículos - SIN columna sku
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS articulos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sku TEXT UNIQUE NOT NULL,
-                nombre TEXT NOT NULL,
+                nombre TEXT UNIQUE NOT NULL,
                 demanda INTEGER NOT NULL,
                 costo_unitario REAL NOT NULL
             )
@@ -34,29 +33,29 @@ class Database:
     
     # ============ OPERACIONES CRUD ============
     
-    def insertar_articulo(self, sku: str, nombre: str, demanda: int, costo_unitario: float) -> int:
+    def insertar_articulo(self, nombre: str, demanda: int, costo_unitario: float) -> int:
         """Inserta un nuevo artículo"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "INSERT INTO articulos (sku, nombre, demanda, costo_unitario) VALUES (?, ?, ?, ?)",
-                (sku, nombre, demanda, costo_unitario)
+                "INSERT INTO articulos (nombre, demanda, costo_unitario) VALUES (?, ?, ?)",
+                (nombre, demanda, costo_unitario)
             )
             conn.commit()
             articulo_id = cursor.lastrowid
             return articulo_id
         except sqlite3.IntegrityError:
-            # Si el SKU ya existe
+            # Si el nombre ya existe
             return -1
         finally:
             conn.close()
     
     def obtener_articulos(self) -> List[Tuple]:
-        """Obtiene todos los artículos ordenados por SKU"""
+        """Obtiene todos los artículos ordenados por nombre"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, sku, nombre, demanda, costo_unitario FROM articulos ORDER BY sku")
+        cursor.execute("SELECT id, nombre, demanda, costo_unitario FROM articulos ORDER BY nombre")
         datos = cursor.fetchall()
         conn.close()
         return datos
@@ -65,24 +64,33 @@ class Database:
         """Obtiene un artículo por su ID"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id, sku, nombre, demanda, costo_unitario FROM articulos WHERE id = ?", (articulo_id,))
+        cursor.execute("SELECT id, nombre, demanda, costo_unitario FROM articulos WHERE id = ?", (articulo_id,))
         dato = cursor.fetchone()
         conn.close()
         return dato
     
-    def actualizar_articulo(self, articulo_id: int, sku: str, nombre: str, demanda: int, costo_unitario: float) -> bool:
+    def obtener_articulo_por_nombre(self, nombre: str) -> Optional[Tuple]:
+        """Obtiene un artículo por su nombre"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, nombre, demanda, costo_unitario FROM articulos WHERE nombre = ?", (nombre,))
+        dato = cursor.fetchone()
+        conn.close()
+        return dato
+    
+    def actualizar_articulo(self, articulo_id: int, nombre: str, demanda: int, costo_unitario: float) -> bool:
         """Actualiza los datos de un artículo"""
         conn = self.get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "UPDATE articulos SET sku = ?, nombre = ?, demanda = ?, costo_unitario = ? WHERE id = ?",
-                (sku, nombre, demanda, costo_unitario, articulo_id)
+                "UPDATE articulos SET nombre = ?, demanda = ?, costo_unitario = ? WHERE id = ?",
+                (nombre, demanda, costo_unitario, articulo_id)
             )
             conn.commit()
             return True
         except sqlite3.IntegrityError:
-            # Si el SKU ya existe en otro registro
+            # Si el nombre ya existe en otro registro
             return False
         finally:
             conn.close()
@@ -104,19 +112,19 @@ class Database:
         conn.close()
     
     def cargar_datos_iniciales(self):
-        """Carga los 10 productos del caso de estudio"""
+        """Carga los 10 productos del caso de estudio SIN SKU"""
         productos = [
-            ("SKU-22", "Producto SKU-22", 950, 100.00),
-            ("SKU-68", "Producto SKU-68", 1500, 50.00),
-            ("SKU-27", "Producto SKU-27", 500, 50.00),
-            ("SKU-03", "Producto SKU-03", 1000, 15.00),
-            ("SKU-82", "Producto SKU-82", 260, 50.00),
-            ("SKU-54", "Producto SKU-54", 250, 30.00),
-            ("SKU-36", "Producto SKU-36", 150, 10.00),
-            ("SKU-19", "Producto SKU-19", 400, 2.00),
-            ("SKU-23", "Producto SKU-23", 85, 5.00),
-            ("SKU-41", "Producto SKU-41", 45, 5.00)
+            ("Producto SKU-22", 950, 100.00),
+            ("Producto SKU-68", 1500, 50.00),
+            ("Producto SKU-27", 500, 50.00),
+            ("Producto SKU-03", 1000, 15.00),
+            ("Producto SKU-82", 260, 50.00),
+            ("Producto SKU-54", 250, 30.00),
+            ("Producto SKU-36", 150, 10.00),
+            ("Producto SKU-19", 400, 2.00),
+            ("Producto SKU-23", 85, 5.00),
+            ("Producto SKU-41", 45, 5.00)
         ]
         
-        for sku, nombre, demanda, costo in productos:
-            self.insertar_articulo(sku, nombre, demanda, costo)
+        for nombre, demanda, costo in productos:
+            self.insertar_articulo(nombre, demanda, costo)

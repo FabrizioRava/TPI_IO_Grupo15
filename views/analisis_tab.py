@@ -63,6 +63,20 @@ class AnalisisABCTab:
         )
         self.recomendaciones_label.pack(fill="both", expand=True, padx=15, pady=15)
         
+        # ====== TEXTO BREVE PARA PRESENTAR EL GRÁFICO ======
+        self.explicacion_grafico_frame = ctk.CTkFrame(self.resultados_frame, corner_radius=10)
+        self.explicacion_grafico_frame.pack(fill="x", pady=10)
+        
+        self.explicacion_grafico_label = ctk.CTkLabel(
+            self.explicacion_grafico_frame,
+            text="",
+            font=("Segoe UI", 15),
+            wraplength=1100,
+            justify="left",
+            anchor="w"
+        )
+        self.explicacion_grafico_label.pack(fill="both", expand=True, padx=15, pady=10)
+        
         # Frame para el gráfico
         self.grafico_frame = ctk.CTkFrame(self.resultados_frame, corner_radius=10)
         self.grafico_frame.pack(fill="both", expand=True, pady=10)
@@ -124,7 +138,7 @@ class AnalisisABCTab:
         self.tree_resultados.heading("Porcentaje", text="% del Capital", anchor="center")
         self.tree_resultados.heading("Grupo", text="Grupo", anchor="center")
         
-        self.tree_resultados.column("Producto", width=150, anchor="w")
+        self.tree_resultados.column("Producto", width=200, anchor="w")
         self.tree_resultados.column("Demanda", width=120, anchor="center")
         self.tree_resultados.column("Costo", width=130, anchor="center")
         self.tree_resultados.column("Capital", width=160, anchor="center")
@@ -161,6 +175,7 @@ class AnalisisABCTab:
         
         self.cargar_tabla_resultados()
         self.cargar_recomendaciones()
+        self.generar_explicacion_grafico()
         self.generar_grafico()
     
     def cargar_tabla_resultados(self):
@@ -170,7 +185,7 @@ class AnalisisABCTab:
         for _, row in self.df_resultados.iterrows():
             grupo = row['grupo']
             self.tree_resultados.insert("", "end", values=(
-                row['sku'],
+                row['nombre'],  # <--- CAMBIADO: usar nombre en lugar de sku
                 row['demanda'],
                 f"${row['costo_unitario']:,.2f}",
                 f"${row['capital']:,.2f}",
@@ -182,6 +197,37 @@ class AnalisisABCTab:
         recomendaciones = self.controller.generar_recomendaciones(self.df_resultados)
         texto_completo = "\n\n".join(recomendaciones)
         self.recomendaciones_label.configure(text=texto_completo)
+    
+    def generar_explicacion_grafico(self):
+        """Genera un texto breve para presentar el gráfico sin repetir información"""
+        df = self.df_resultados
+        
+        # Calcular estadísticas por grupo
+        grupo_a = df[df['grupo'] == 'A']
+        grupo_b = df[df['grupo'] == 'B']
+        grupo_c = df[df['grupo'] == 'C']
+        
+        pct_a_valor = grupo_a['porcentaje_individual'].sum() if not grupo_a.empty else 0
+        pct_b_valor = grupo_b['porcentaje_individual'].sum() if not grupo_b.empty else 0
+        pct_c_valor = grupo_c['porcentaje_individual'].sum() if not grupo_c.empty else 0
+        
+        pct_a_articulos = (len(grupo_a) / len(df) * 100) if not grupo_a.empty else 0
+        pct_b_articulos = (len(grupo_b) / len(df) * 100) if not grupo_b.empty else 0
+        pct_c_articulos = (len(grupo_c) / len(df) * 100) if not grupo_c.empty else 0
+        
+        explicacion = f"""
+📈 GRÁFICO DE PARETO - CLASIFICACIÓN ABC
+
+El gráfico muestra visualmente cómo se distribuye el capital entre los diferentes productos, agrupados por su nivel de importancia.
+
+🔴 Grupo A: {pct_a_articulos:.1f}% de los productos → {pct_a_valor:.1f}% del capital
+🟡 Grupo B: {pct_b_articulos:.1f}% de los productos → {pct_b_valor:.1f}% del capital  
+🟢 Grupo C: {pct_c_articulos:.1f}% de los productos → {pct_c_valor:.1f}% del capital
+
+La curva azul (línea acumulada) muestra cómo el capital se acumula progresivamente. 
+Cuanto más pronunciada es la pendiente al principio, más concentrado está el valor en pocos productos.
+"""
+        self.explicacion_grafico_label.configure(text=explicacion)
     
     def generar_grafico(self):
         """Genera el gráfico de Pareto del análisis ABC estilo imagen con bloques por grupo"""
@@ -284,8 +330,6 @@ class AnalisisABCTab:
         ax1.text(2, 97, '95%', color='orange', fontsize=12, fontweight='bold')
         
         ax1.set_title('Análisis ABC - Clasificación de Inventario', fontsize=16, fontweight='bold', pad=20)
-        
-        # Leyenda ELIMINADA
         
         fig.tight_layout()
         

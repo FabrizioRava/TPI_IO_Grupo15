@@ -14,7 +14,7 @@ class ProduccionTab:
         self.db = db
         self.controller = ProduccionController(db)
         self.producto_seleccionado = None
-        self.productos_grupo_a = []
+        self.productos_disponibles = []
         self.ultimo_resultado = None
         self.ultimo_texto = ""
         
@@ -33,7 +33,7 @@ class ProduccionTab:
         # Subtítulo
         subtitulo = ctk.CTkLabel(
             self.main_frame,
-            text="Seleccione un producto del Grupo A para analizar su estrategia de producción óptima",
+            text="Seleccione un producto para analizar su estrategia de producción óptima",
             font=("Arial", 16)
         )
         subtitulo.pack(pady=(0, 15))
@@ -42,13 +42,35 @@ class ProduccionTab:
         self.seleccion_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
         self.seleccion_frame.pack(fill="x", pady=10)
         
+        # Label grupo
+        self.label_grupo = ctk.CTkLabel(
+            self.seleccion_frame,
+            text="Grupo:",
+            font=("Arial", 16)
+        )
+        self.label_grupo.pack(side="left", padx=10, pady=10)
+        
+        # Combobox para seleccionar grupo
+        self.combo_grupo = ctk.CTkComboBox(
+            self.seleccion_frame,
+            values=["A", "B", "C"],
+            width=80,
+            height=40,
+            font=("Arial", 14),
+            command=self.on_grupo_seleccionado
+        )
+        self.combo_grupo.pack(side="left", padx=5, pady=10)
+        self.combo_grupo.set("A")
+        
+        # Label producto
         self.label_producto = ctk.CTkLabel(
             self.seleccion_frame,
-            text="Producto del Grupo A:",
+            text="Producto:",
             font=("Arial", 16)
         )
         self.label_producto.pack(side="left", padx=10, pady=10)
         
+        # Combobox para productos - AHORA MUESTRA EL NOMBRE
         self.combo_productos = ctk.CTkComboBox(
             self.seleccion_frame,
             values=["Cargando..."],
@@ -56,12 +78,13 @@ class ProduccionTab:
             height=40,
             font=("Arial", 14)
         )
-        self.combo_productos.pack(side="left", padx=10, pady=10)
+        self.combo_productos.pack(side="left", padx=5, pady=10)
         
+        # Botón para cargar productos
         self.btn_cargar = ctk.CTkButton(
             self.seleccion_frame,
-            text="🔄 Cargar Productos Grupo A",
-            command=self.cargar_productos_grupo_a,
+            text="🔄 Cargar Productos",
+            command=self.cargar_productos_por_grupo,
             height=40,
             font=("Arial", 14)
         )
@@ -280,44 +303,88 @@ class ProduccionTab:
         )
         self.recomendaciones_label.pack(fill="both", expand=True, padx=15, pady=15)
         
-        # Frame para gráficos
-        self.graficos_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
-        self.graficos_frame.pack(fill="both", expand=True, pady=10)
+        # ====== GRÁFICO 1: SIERRA CON EXPLICACIÓN ======
+        self.grafico_sierra_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
+        self.grafico_sierra_frame.pack(fill="both", expand=True, pady=10)
+        
+        self.explicacion_sierra_label = ctk.CTkLabel(
+            self.grafico_sierra_frame,
+            text="",
+            font=("Segoe UI", 14),
+            wraplength=1200,
+            justify="left",
+            anchor="w"
+        )
+        self.explicacion_sierra_label.pack(fill="x", padx=15, pady=5)
+        
+        # Contenedor para el gráfico de sierra
+        self.sierra_container = ctk.CTkFrame(self.grafico_sierra_frame, fg_color="transparent")
+        self.sierra_container.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        # ====== GRÁFICO 2: COSTOS CON EXPLICACIÓN ======
+        self.grafico_costos_frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
+        self.grafico_costos_frame.pack(fill="both", expand=True, pady=10)
+        
+        self.explicacion_costos_label = ctk.CTkLabel(
+            self.grafico_costos_frame,
+            text="",
+            font=("Segoe UI", 14),
+            wraplength=1200,
+            justify="left",
+            anchor="w"
+        )
+        self.explicacion_costos_label.pack(fill="x", padx=15, pady=5)
+        
+        # Contenedor para el gráfico de costos
+        self.costos_container = ctk.CTkFrame(self.grafico_costos_frame, fg_color="transparent")
+        self.costos_container.pack(fill="both", expand=True, padx=10, pady=5)
         
         # Cargar productos automáticamente al iniciar
-        self.cargar_productos_grupo_a()
+        self.cargar_productos_por_grupo()
     
-    def cargar_productos_grupo_a(self):
-        """Carga los productos del Grupo A en el combobox"""
-        self.productos_grupo_a = self.controller.obtener_productos_grupo_a()
+    def on_grupo_seleccionado(self, choice):
+        """Se ejecuta cuando se cambia el grupo seleccionado"""
+        self.cargar_productos_por_grupo()
+    
+    def cargar_productos_por_grupo(self):
+        """Carga los productos del grupo seleccionado en el combobox"""
+        grupo = self.combo_grupo.get()
         
-        if not self.productos_grupo_a:
-            self.combo_productos.configure(values=["No hay productos en Grupo A"])
-            self.combo_productos.set("No hay productos en Grupo A")
+        # Obtener productos del grupo seleccionado
+        self.productos_disponibles = self.controller.obtener_productos_por_grupo(grupo)
+        
+        if not self.productos_disponibles:
+            self.combo_productos.configure(values=[f"No hay productos en Grupo {grupo}"])
+            self.combo_productos.set(f"No hay productos en Grupo {grupo}")
+            self.producto_seleccionado = None
             return
         
-        valores = [f"{p['sku']} - {p['nombre']} (D={p['demanda']})" for p in self.productos_grupo_a]
+        # Preparar lista para el combobox - MOSTRAR SOLO EL NOMBRE
+        valores = [p['nombre'] for p in self.productos_disponibles]
         self.combo_productos.configure(values=valores)
-        self.combo_productos.set(valores[0])
-        self.actualizar_demanda_seleccionada()
+        self.combo_productos.set(valores[0] if valores else "")
+        self.actualizar_producto_seleccionado()
     
-    def actualizar_demanda_seleccionada(self):
-        """Actualiza el producto seleccionado"""
+    def actualizar_producto_seleccionado(self):
+        """Actualiza el producto seleccionado cuando se cambia en el combobox"""
         seleccion = self.combo_productos.get()
         if not seleccion or seleccion.startswith("No hay"):
             self.producto_seleccionado = None
             return
         
-        sku = seleccion.split(" - ")[0]
-        for p in self.productos_grupo_a:
-            if p['sku'] == sku:
+        # Buscar el producto por nombre
+        for p in self.productos_disponibles:
+            if p['nombre'] == seleccion:
                 self.producto_seleccionado = p
                 break
     
     def calcular_completo(self):
         """Calcula y muestra todos los resultados: EPQ + SS + PR + gráficos"""
+        # Actualizar producto seleccionado antes de calcular
+        self.actualizar_producto_seleccionado()
+        
         if not self.producto_seleccionado:
-            messagebox.showerror("Error", "Seleccione un producto del Grupo A")
+            messagebox.showerror("Error", "Seleccione un producto")
             return
         
         # Obtener valores de EPQ
@@ -381,7 +448,7 @@ class ProduccionTab:
                 return
         
         demanda = self.producto_seleccionado['demanda']
-        sku = self.producto_seleccionado['sku']
+        nombre = self.producto_seleccionado['nombre']
         costo_unitario = self.producto_seleccionado['costo_unitario']
         
         # Validaciones
@@ -403,9 +470,7 @@ class ProduccionTab:
         # Obtener S* para SS/PR
         s_optima = resultado_epq.get('s_optima', 0)
         
-        # ============================================================
-        # CALCULAR SS Y PR - PASANDO CH PARA EL COSTO DEL SS
-        # ============================================================
+        # Calcular SS y PR
         resultado_ss_pr = self.controller.calcular_ss_pr(
             demanda=demanda,
             dias_operativos=dias_operativos,
@@ -418,60 +483,46 @@ class ProduccionTab:
             ch=ch
         )
         
-        # Obtener costo_ss del resultado (ya calculado como SS × Ch)
+        # Obtener costo_ss del resultado
         costo_ss = resultado_ss_pr['costo_ss']
         
         # Calcular costo total incluyendo SS
         ct = resultado_epq['ct']
         ct_con_ss = ct + costo_ss
         
-        # ============================================================
-        # CALCULAR VALORES EN DÍAS PARA COMPARAR
-        # ============================================================
+        # Calcular valores en días para comparar
         t_dias = resultado_epq['t'] * dias_operativos
         tp_dias = resultado_epq['tp'] * dias_operativos
         td_dias = resultado_epq['td'] * dias_operativos
         
-        # ============================================================
-        # COMPARAR CON RESULTADO ANTERIOR PARA DETECTAR CAMBIOS
-        # ============================================================
+        # Comparar con resultado anterior
         resultado_actual = {
-            # Variables principales del EPQ
             'q_optima': resultado_epq['q_optima'],
             'cp': resultado_epq['cp'],
             'cm': resultado_epq['cm'],
             'ct': resultado_epq['ct'],
-            'imax': resultado_epq['imax'],                    # <--- NUEVO
+            'imax': resultado_epq['imax'],
             'n': resultado_epq['n'],
-            
-            # Variables de tiempos
             't_dias': t_dias,
             'tp_dias': tp_dias,
-            'td_dias': td_dias,                               # <--- NUEVO
-            
-            # Variables de stock
+            'td_dias': td_dias,
             'ss_redondeado': resultado_ss_pr['ss_redondeado'],
             'pr_redondeado': resultado_ss_pr['pr_redondeado'],
-            
-            # Variables de costos con stock de seguridad
             'costo_ss': costo_ss,
             'ct_con_ss': ct_con_ss,
-            
-            # Variables específicas si hay faltantes
-            's_optima': resultado_epq.get('s_optima', 0),      # <--- NUEVO
-            'ct_f': resultado_epq.get('ct_f', 0),              # <--- NUEVO
+            's_optima': resultado_epq.get('s_optima', 0),
+            'ct_f': resultado_epq.get('ct_f', 0),
         }
         
         cambios = self.controller.comparar_con_anterior(resultado_actual)
         self.controller.ultimo_resultado = resultado_actual
         
-        # Generar texto de cambios si existen
+        # Generar texto de cambios
         texto_cambios = ""
         if cambios:
             texto_cambios = "\n\n📊 CAMBIOS DETECTADOS RESPECTO AL ANÁLISIS ANTERIOR:\n"
             for clave, cambio in cambios.items():
                 simbolo = cambio['simbolo']
-                # Mostrar con 2 decimales para valores monetarios
                 if 'costo' in clave or 'ct' in clave:
                     texto_cambios += f"   {simbolo} {cambio['nombre']}: ${cambio['valor_anterior']:.2f} → ${cambio['valor_nuevo']:.2f} "
                 else:
@@ -510,24 +561,23 @@ class ProduccionTab:
             costo_unitario=costo_unitario
         )
         
-        # Agregar cambios al texto
+        # Mostrar todo
         texto_final = recomendaciones
         if texto_cambios:
             texto_final += texto_cambios
         
-        # Mostrar recomendaciones
         self.recomendaciones_label.configure(text=texto_final)
         self.ultimo_texto = texto_final
         
-        # Graficar
-        self.graficar(resultado_epq, resultado_ss_pr, demanda, co, ch, p, cb, dias_operativos)
+        # Graficar separadamente con explicaciones
+        self.graficar_sierra(resultado_epq, resultado_ss_pr, demanda, co, ch, p, cb, dias_operativos)
+        self.graficar_costos(resultado_epq, demanda, co, ch, p, cb, dias_operativos)
     
-    def graficar(self, resultado_epq, resultado_ss_pr, demanda, co, ch, p, cb=None, dias_operativos=300):
-        """Genera los gráficos: sierra y costos con escala adaptada a días operativos"""
-        for widget in self.graficos_frame.winfo_children():
+    def graficar_sierra(self, resultado_epq, resultado_ss_pr, demanda, co, ch, p, cb=None, dias_operativos=300):
+        """Genera el gráfico de sierra con su explicación"""
+        # Limpiar contenedor
+        for widget in self.sierra_container.winfo_children():
             widget.destroy()
-        
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
         
         q_optima = resultado_epq['q_optima']
         imax = resultado_epq['imax']
@@ -536,7 +586,9 @@ class ProduccionTab:
         tiene_faltantes = resultado_epq['tiene_faltantes']
         s_optima = resultado_epq.get('s_optima', 0)
         
-        # ========== GRÁFICO 1: SIERRA ==========
+        # Crear figura - MÁS CUADRADA
+        fig, ax = plt.subplots(figsize=(6, 5))
+        
         max_dias = dias_operativos
         tiempo_total = np.linspace(0, max_dias, 500)
         inventario = []
@@ -556,55 +608,100 @@ class ProduccionTab:
                 inv = max(inv, 0)
             inventario.append(inv)
         
-        ax1.plot(tiempo_total, inventario, color='#1565C0', linewidth=2)
-        ax1.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+        ax.plot(tiempo_total, inventario, color='#1565C0', linewidth=2)
+        ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
         
         if resultado_ss_pr['pr_redondeado'] > 0:
-            ax1.axhline(y=resultado_ss_pr['pr_redondeado'], color='red', linestyle='--', 
+            ax.axhline(y=resultado_ss_pr['pr_redondeado'], color='red', linestyle='--', 
                        linewidth=1.5, label=f'PR = {resultado_ss_pr["pr_redondeado"]}')
         if resultado_ss_pr['ss_redondeado'] > 0:
-            ax1.axhline(y=resultado_ss_pr['ss_redondeado'], color='green', linestyle='--', 
+            ax.axhline(y=resultado_ss_pr['ss_redondeado'], color='green', linestyle='--', 
                        linewidth=1.5, label=f'SS = {resultado_ss_pr["ss_redondeado"]}')
         
-        ax1.set_xlabel('Tiempo (días)', fontsize=12)
-        ax1.set_ylabel('Inventario (unidades)', fontsize=12)
-        ax1.set_title('Gráfico de Sierra - Evolución del Inventario', fontsize=14)
-        ax1.set_xlim(0, max_dias)
-        ax1.grid(True, alpha=0.3)
-        ax1.legend()
+        ax.set_xlabel('Tiempo (días)', fontsize=11)
+        ax.set_ylabel('Inventario (unidades)', fontsize=11)
+        ax.set_title('Evolución del Inventario (Sierra)', fontsize=13)
+        ax.set_xlim(0, max_dias)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='upper right')
         
-        # ========== GRÁFICO 2: COSTOS ==========
+        plt.tight_layout()
+        
+        canvas = FigureCanvasTkAgg(fig, master=self.sierra_container)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+        
+        # Explicación del gráfico de sierra
+        explicacion = f"""
+📊 GRÁFICO DE SIERRA - EVOLUCIÓN DEL INVENTARIO
+
+Este gráfico muestra cómo varía el nivel de inventario a lo largo del tiempo.
+
+🔹 Cada "diente de sierra" representa un ciclo de producción completo.
+🔹 La línea ascendente (⚡) muestra la fase de producción, donde el inventario aumenta.
+🔹 La línea descendente (📉) muestra la fase de consumo, donde el inventario disminuye.
+🔹 El punto más alto de cada ciclo (📈) es el inventario máximo: {imax:.0f} unidades.
+🔹 Las líneas horizontales muestran el Stock de Seguridad (SS) y el Punto de Reorden (PR).
+"""
+        self.explicacion_sierra_label.configure(text=explicacion)
+    
+    def graficar_costos(self, resultado_epq, demanda, co, ch, p, cb=None, dias_operativos=300):
+        """Genera el gráfico de costos con su explicación"""
+        # Limpiar contenedor
+        for widget in self.costos_container.winfo_children():
+            widget.destroy()
+        
+        q_optima = resultado_epq['q_optima']
+        tiene_faltantes = resultado_epq['tiene_faltantes']
+        
+        # Crear figura - MÁS CUADRADA
+        fig, ax = plt.subplots(figsize=(6, 5))
+        
         q_range = np.linspace(max(1, q_optima * 0.2), q_optima * 2.5, 100)
         cp_values = (demanda / q_range) * co
         cm_values = (q_range / 2) * ch * (1 - demanda / p)
         ct_values = cp_values + cm_values
         
-        ax2.plot(q_range, cp_values, color='orange', linewidth=2, label='Costo de Producción (CP)')
-        ax2.plot(q_range, cm_values, color='green', linewidth=2, label='Costo de Inventario (CI)')
-        ax2.plot(q_range, ct_values, color='blue', linewidth=2.5, label='Costo Total (CT)')
+        ax.plot(q_range, cp_values, color='orange', linewidth=2, label='Costo Producción (CP)')
+        ax.plot(q_range, cm_values, color='green', linewidth=2, label='Costo Inventario (CI)')
+        ax.plot(q_range, ct_values, color='blue', linewidth=2.5, label='Costo Total (CT)')
         
         if tiene_faltantes and cb is not None and cb > 0:
             q_range_falt = np.linspace(max(1, q_optima * 0.2), q_optima * 2.5, 100)
             cp_falt = (demanda / q_range_falt) * co
             cm_falt = (q_range_falt / 2) * ch * (1 - demanda / p)
             ct_falt_values = cp_falt + cm_falt + ((q_range_falt * (ch/(ch+cb))**2 * cb) / (2 * (1 - demanda/p)))
-            ax2.plot(q_range_falt, ct_falt_values, color='purple', linewidth=2, 
+            ax.plot(q_range_falt, ct_falt_values, color='purple', linewidth=2, 
                     linestyle='--', label='CT con faltantes')
         
-        ax2.scatter(q_optima, resultado_epq['ct'], color='red', s=100, zorder=5)
-        ax2.annotate(f'Q* = {q_optima}', 
+        ax.scatter(q_optima, resultado_epq['ct'], color='red', s=100, zorder=5)
+        ax.annotate(f'Q* = {q_optima}', 
                     xy=(q_optima, resultado_epq['ct']),
                     xytext=(q_optima * 1.1, resultado_epq['ct'] * 0.9),
-                    fontsize=11, fontweight='bold')
+                    fontsize=10, fontweight='bold')
         
-        ax2.set_xlabel('Tamaño del Lote (Q)', fontsize=12)
-        ax2.set_ylabel('Costos ($/año)', fontsize=12)
-        ax2.set_title('Análisis de Costos vs Tamaño de Lote', fontsize=14)
-        ax2.grid(True, alpha=0.3)
-        ax2.legend()
+        ax.set_xlabel('Tamaño del Lote (Q)', fontsize=11)
+        ax.set_ylabel('Costos ($/año)', fontsize=11)
+        ax.set_title('Análisis de Costos vs Tamaño de Lote', fontsize=13)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc='upper right')
         
         plt.tight_layout()
         
-        canvas = FigureCanvasTkAgg(fig, master=self.graficos_frame)
+        canvas = FigureCanvasTkAgg(fig, master=self.costos_container)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
+        
+        # Explicación del gráfico de costos
+        explicacion = f"""
+📊 ANÁLISIS DE COSTOS VS TAMAÑO DE LOTE
+
+Este gráfico muestra cómo varían los diferentes costos en función del tamaño del lote (Q).
+
+🔹 Costo de Producción (CP): Disminuye a medida que Q aumenta (menos preparaciones).
+🔹 Costo de Inventario (CI): Aumenta a medida que Q aumenta (más unidades en inventario).
+🔹 Costo Total (CT): Es la suma de ambos costos y tiene un punto mínimo.
+🔹 El punto rojo (🔴) marca el punto óptimo (Q* = {q_optima}), donde el costo total es mínimo.
+🔹 Producir menos o más que Q* incrementa el costo total anual.
+"""
+        self.explicacion_costos_label.configure(text=explicacion)

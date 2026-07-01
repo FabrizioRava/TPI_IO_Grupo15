@@ -118,7 +118,7 @@ class InventarioTab:
         self.tree.heading("Demanda", text="Demanda Anual", anchor="center")
         self.tree.heading("Costo", text="Costo Unitario ($)", anchor="center")
         
-        self.tree.column("Producto", width=250, anchor="w")
+        self.tree.column("Producto", width=300, anchor="w")
         self.tree.column("Demanda", width=200, anchor="center")
         self.tree.column("Costo", width=200, anchor="center")
         
@@ -150,13 +150,13 @@ class InventarioTab:
         # Obtener datos
         articulos = self.db.obtener_articulos()
         
-        # Insertar en la tabla - SOLO el SKU
+        # Insertar en la tabla - SOLO el nombre del producto
         for i, articulo in enumerate(articulos):
             tag = 'even' if i % 2 == 0 else 'odd'
             self.tree.insert("", "end", values=(
-                articulo[1],   # SKU (solamente)
-                articulo[3],   # Demanda
-                f"${articulo[4]:,.2f}"  # Costo
+                articulo[1],   # Nombre
+                articulo[2],   # Demanda
+                f"${articulo[3]:,.2f}"  # Costo
             ), tags=(tag,))
     
     def on_double_click(self, event):
@@ -176,16 +176,16 @@ class InventarioTab:
         if col_index not in [1, 2]:
             return
         
-        # El SKU está directamente en la columna 0
-        sku = values[0]
+        # El nombre está en la columna 0
+        nombre = values[0]
         
         # Obtener el nombre de la columna
         col_name = ["Producto", "Demanda", "Costo"][col_index]
         
         # Crear ventana de edición
-        self.mostrar_dialogo_edicion(sku, col_index, col_name, values)
+        self.mostrar_dialogo_edicion(nombre, col_index, col_name, values)
     
-    def mostrar_dialogo_edicion(self, sku, col_index, col_name, values):
+    def mostrar_dialogo_edicion(self, nombre, col_index, col_name, values):
         """Muestra un diálogo para editar el valor"""
         dialog = ctk.CTkToplevel(self.parent)
         dialog.title(f"Editar {col_name}")
@@ -201,7 +201,7 @@ class InventarioTab:
         # Información del artículo - Fuente más grande
         ctk.CTkLabel(
             frame, 
-            text=f"Editando: {sku}", 
+            text=f"Editando: {nombre}", 
             font=("Arial", 18, "bold")
         ).pack(pady=10)
         
@@ -209,7 +209,7 @@ class InventarioTab:
         articulos = self.db.obtener_articulos()
         articulo_data = None
         for a in articulos:
-            if a[1] == sku:  # a[1] es el SKU
+            if a[1] == nombre:  # a[1] es el nombre
                 articulo_data = a
                 break
         
@@ -245,19 +245,18 @@ class InventarioTab:
                 valores_actuales = list(articulo)
                 
                 # Actualizar el valor correspondiente
-                # El orden es: id, sku, nombre, demanda, costo
+                # El orden es: id, nombre, demanda, costo
                 if col_index == 1:  # Demanda
-                    valores_actuales[3] = int(nuevo_valor)
+                    valores_actuales[2] = int(nuevo_valor)
                 elif col_index == 2:  # Costo
-                    valores_actuales[4] = float(nuevo_valor)
+                    valores_actuales[3] = float(nuevo_valor)
                 
                 # Actualizar en la base de datos
                 self.db.actualizar_articulo(
                     articulo_id,
-                    valores_actuales[1],  # sku
-                    valores_actuales[2],  # nombre
-                    valores_actuales[3],  # demanda
-                    valores_actuales[4]   # costo
+                    valores_actuales[1],  # nombre
+                    valores_actuales[2],  # demanda
+                    valores_actuales[3]   # costo
                 )
                 
                 dialog.destroy()
@@ -288,10 +287,10 @@ class InventarioTab:
         ).pack(side="left", padx=5)
     
     def agregar_producto(self):
-        """Abre un diálogo para agregar un nuevo producto"""
+        """Abre un diálogo para agregar un nuevo producto - SIN SKU"""
         dialog = ctk.CTkToplevel(self.parent)
         dialog.title("Agregar Nuevo Producto")
-        dialog.geometry("500x480")
+        dialog.geometry("500x400")  # Más pequeño porque ya no tiene SKU
         dialog.grab_set()
         dialog.transient(self.parent)
         dialog.focus_force()
@@ -306,10 +305,9 @@ class InventarioTab:
             font=("Arial", 20, "bold")
         ).pack(pady=10)
         
-        # Campos - Fuente más grande
+        # Campos - Fuente más grande (SIN SKU)
         campos = [
-            ("SKU (ej: SKU-99):", "entry_sku"),
-            ("Nombre:", "entry_nombre"),
+            ("Nombre del Producto:", "entry_nombre"),
             ("Demanda Anual:", "entry_demanda"),
             ("Costo Unitario ($):", "entry_costo")
         ]
@@ -323,20 +321,19 @@ class InventarioTab:
         
         def guardar():
             try:
-                sku = entries["entry_sku"].get().strip()
                 nombre = entries["entry_nombre"].get().strip()
                 demanda = int(entries["entry_demanda"].get().strip())
                 costo = float(entries["entry_costo"].get().strip())
                 
-                if not sku or not nombre:
-                    messagebox.showerror("Error", "SKU y Nombre son obligatorios")
+                if not nombre:
+                    messagebox.showerror("Error", "El nombre es obligatorio")
                     return
                 
-                # Insertar en la base de datos
-                resultado = self.db.insertar_articulo(sku, nombre, demanda, costo)
+                # Insertar en la base de datos (SIN SKU)
+                resultado = self.db.insertar_articulo(nombre, demanda, costo)
                 
                 if resultado == -1:
-                    messagebox.showerror("Error", f"El SKU '{sku}' ya existe")
+                    messagebox.showerror("Error", f"El producto '{nombre}' ya existe")
                 else:
                     dialog.destroy()
                     self.cargar_datos()
@@ -370,13 +367,13 @@ class InventarioTab:
         
         item = selection[0]
         values = self.tree.item(item, "values")
-        sku = values[0]  # Ahora es directamente el SKU
+        nombre = values[0]  # Ahora es el nombre del producto
         
         # Obtener el ID del artículo desde la BD
         articulos = self.db.obtener_articulos()
         articulo_id = None
         for a in articulos:
-            if a[1] == sku:
+            if a[1] == nombre:
                 articulo_id = a[0]
                 break
         
@@ -385,7 +382,7 @@ class InventarioTab:
             return
         
         # Confirmar
-        if messagebox.askyesno("Confirmar", f"¿Estás seguro de eliminar el producto '{sku}'?"):
+        if messagebox.askyesno("Confirmar", f"¿Estás seguro de eliminar el producto '{nombre}'?"):
             self.db.eliminar_articulo(articulo_id)
             self.cargar_datos()
             messagebox.showinfo("Éxito", "Producto eliminado correctamente")

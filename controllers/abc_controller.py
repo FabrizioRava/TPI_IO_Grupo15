@@ -20,11 +20,10 @@ class ABCController:
         # Crear DataFrame
         data = []
         for articulo in articulos:
-            id_art, sku, nombre, demanda, costo = articulo
+            id_art, nombre, demanda, costo = articulo
             capital = demanda * costo
             data.append({
                 'id': id_art,
-                'sku': sku,
                 'nombre': nombre,
                 'demanda': demanda,
                 'costo_unitario': costo,
@@ -75,7 +74,7 @@ class ABCController:
         # Productos Grupo A
         grupo_a = df[df['grupo'] == 'A']
         if not grupo_a.empty:
-            productos_a = ', '.join(grupo_a['sku'].tolist())
+            productos_a = ', '.join(grupo_a['nombre'].tolist())
             porcentaje_productos_a = (len(grupo_a) / len(df) * 100)
             pct_capital_a = grupo_a['porcentaje_individual'].sum()
             recomendaciones.append(
@@ -89,7 +88,7 @@ class ABCController:
         # Productos Grupo B
         grupo_b = df[df['grupo'] == 'B']
         if not grupo_b.empty:
-            productos_b = ', '.join(grupo_b['sku'].tolist())
+            productos_b = ', '.join(grupo_b['nombre'].tolist())
             porcentaje_productos_b = (len(grupo_b) / len(df) * 100)
             pct_capital_b = grupo_b['porcentaje_individual'].sum()
             recomendaciones.append(
@@ -102,7 +101,7 @@ class ABCController:
         # Productos Grupo C
         grupo_c = df[df['grupo'] == 'C']
         if not grupo_c.empty:
-            productos_c = ', '.join(grupo_c['sku'].tolist())
+            productos_c = ', '.join(grupo_c['nombre'].tolist())
             porcentaje_productos_c = (len(grupo_c) / len(df) * 100)
             pct_capital_c = grupo_c['porcentaje_individual'].sum()
             recomendaciones.append(
